@@ -22,8 +22,7 @@ Visa Platinum 7000 79** **** 6361 # выход функции
 import re
 from datetime import datetime
 
-
-from .masks import get_mask_card_number, get_mask_account
+from .masks import get_mask_account, get_mask_card_number
 
 
 def mask_account_card(account_info: str) -> str:
@@ -33,7 +32,7 @@ def mask_account_card(account_info: str) -> str:
         raise ValueError("Ввод должен быть непустой строкой")
 
         # Проверка на наличие цифр в веденной строке
-    numbers = re.findall(r'\d+', account_info)
+    numbers = re.findall(r"\d+", account_info)
     if not numbers:
         raise ValueError("Нет цифр в веденной строке")
 
@@ -42,11 +41,13 @@ def mask_account_card(account_info: str) -> str:
     lower_info = account_info.lower()
 
     # Определяем тип введённых данных - "карта" или "счет"
-    is_card = ((any(word in lower_info for word in
-                ["visa", "mastercard", "maestro",
-                 "visa classic", "card", "visa platinum", "visa gold"])
-                    or len(number_str) == 16)
-                    and not any(word in lower_info for word in ["счет"]))
+    is_card = (
+        any(
+            word in lower_info
+            for word in ["visa", "mastercard", "maestro", "visa classic", "card", "visa platinum", "visa gold"]
+        )
+        or len(number_str) == 16
+    ) and not any(word in lower_info for word in ["счет"])
 
     # Выбираем функцию маскировки и применяем
     if is_card:
@@ -58,20 +59,20 @@ def mask_account_card(account_info: str) -> str:
 
 
 def get_date(date_string: str) -> str:
-    """ Функция, которая принимает на вход строку с датой в формате:
-"2024-03-11T02:26:18.671407" и возвращает строку с датой в формате:
-"ДД.ММ.ГГГГ" ("11.03.2024").
+    """Функция, которая принимает на вход строку с датой в формате:
+    "2024-03-11T02:26:18.671407" и возвращает строку с датой в формате:
+    "ДД.ММ.ГГГГ" ("11.03.2024").
 
-    Raises:
-        ValueError: Если ввод строки не соответствует формату
+        Raises:
+            ValueError: Если ввод строки не соответствует формату
     """
     if not date_string or not isinstance(date_string, str):
         raise ValueError("Ввод должен быть непустой строкой")
 
     try:
         # Парсинг ISO формат
-        dt = datetime.fromisoformat(date_string.replace('Z', '+00:00'))
+        dt = datetime.fromisoformat(date_string.replace("Z", "+00:00"))
         # Форматируем в DD.MM.YYYY
         return dt.strftime("%d.%m.%Y")
     except (ValueError, TypeError) as e:
-        raise ValueError(f"Invalid date format: {date_string}") from e
+        raise ValueError(f"Неверный формат даты: {date_string}") from e
