@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 """Функция filter_by_state, которая принимает список словарей и
 опционально значение для ключа state (по умолчанию 'EXECUTED').
 Функция возвращает новый список словарей, содержащий только те словари,
@@ -13,8 +15,6 @@
          {'id': 939719570, 'state': 'EXECUTED', 'date': '2018-06-30T02:08:58.425572'}]
 >>> filter_by_state(data, 'CANCELED')
          [{'id': 594226727, 'state': 'CANCELED', 'date': '2018-09-12T21:27:25.241689'}]"""
-
-from typing import Any, Dict, List
 
 
 def filter_by_state(data: List[Dict[str, Any]], state: str = "EXECUTED") -> List[Dict[str, Any]]:
