@@ -33,14 +33,12 @@ def filter_by_state(data: List[Dict[str, Any]], state: str = "EXECUTED") -> List
 параметр, задающий порядок сортировки (по умолчанию — убывание).
 Функция должна возвращать новый список, отсортированный по дате (date)."""
 
-def sort_by_date(
-    data: List[Dict[str, Any]],
-    descending: bool = True
-) -> List[Dict[str, Any]]:
+
+def sort_by_date(data: List[Dict[str, Any]], descending: bool = True) -> List[Dict[str, Any]]:
     # Проверка на некорректность типа введенных данных
     if not isinstance(data, list):
         raise TypeError("Тип вводимых данных должен быть 'списком' или 'словарем'")
-
+    # Проверка на отсутствие данных, для ускорения отработки кода
     if not data:
         return []
 
@@ -49,9 +47,5 @@ def sort_by_date(
         if "date" not in item:
             raise KeyError("Все словари должны содержать ключ 'date'")
 
-        # Сортируем по дате (ISO формат корректно сортируется как строка)
-    return sorted(
-        data,
-        key=lambda x: x["date"],
-        reverse=descending
-    )
+        # Сортируем по дате
+    return sorted(data, key=lambda x: x["date"], reverse=descending)
