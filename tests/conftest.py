@@ -1,8 +1,9 @@
 """Фикстуры для тестов."""
 
-import pytest
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
+import pytest
 
 
 @pytest.fixture
@@ -55,9 +56,9 @@ def mixed_account_data() -> List[Dict[str, Any]]:
     """Фикстура со смешанными данными счета/карты для тестирования виджета."""
     return [
         {"Visa Platinum": "7000792289606361"},
-        "Maestro 1234567812345678",
-        "Счет 73654108430135874305",
-        "Account 1234567890",
-        "Mastercard 5555555555554444",
-        "Счет 40817810099910004312",
+        {"Maestro": "1234567812345678"},
+        {"Счет": "73654108430135874305"},
+        {"Account": "1234567890"},
+        {"Mastercard": "5555555555554444"},
+        {"Счет": "40817810099910004312"}
     ]
