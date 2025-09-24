@@ -61,11 +61,9 @@ def mask_account_card(account_info: str) -> str:
 def get_date(date_string: str) -> str:
     """Функция, которая принимает на вход строку с датой в формате:
     "2024-03-11T02:26:18.671407" и возвращает строку с датой в формате:
-    "ДД.ММ.ГГГГ" ("11.03.2024").
+    "ДД.ММ.ГГГГ" ("11.03.2024")."""
 
-        Raises:
-            ValueError: Если ввод строки не соответствует формату
-    """
+
     if not date_string or not isinstance(date_string, str):
         raise ValueError("Ввод должен быть непустой строкой")
 
@@ -75,4 +73,4 @@ def get_date(date_string: str) -> str:
         # Форматируем в DD.MM.YYYY
         return dt.strftime("%d.%m.%Y")
     except (ValueError, TypeError) as e:
-        raise ValueError(f"Неверный формат даты: {date_string}") from e
+        raise ValueError(f"Неверный формат даты") from e
