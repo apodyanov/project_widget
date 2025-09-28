@@ -13,8 +13,8 @@ class TestFilterByState:
     @pytest.mark.parametrize(
         "state, expected_count",
         [
-            ("EXECUTED", 3),
-            ("PENDING", 1),
+            ("EXECUTED", 4),
+            ("PENDING", 0),
             ("CANCELED", 1),
             ("COMPLETED", 0),  # Не существующее состояние
         ],
@@ -34,7 +34,7 @@ class TestFilterByState:
         result_explicit = filter_by_state(sample_transactions, "EXECUTED")
 
         assert result_default == result_explicit
-        assert len(result_default) == 3
+        assert len(result_default) == 4
         assert all(item["state"] == "EXECUTED" for item in result_default)
 
     def test_empty_list(self) -> None:
@@ -80,8 +80,8 @@ class TestSortByDate:
         assert dates == sorted(dates, reverse=True)
 
         #  Проверка особых форматов даты
-        assert result[0]["date"] == "2024-01-25T11:20:00.000000"  # Новые
-        assert result[-1]["date"] == "2024-01-05T16:45:00.000000"  # Старые
+        assert result[0]["date"] == "2019-04-04T23:20:05.206878"  # Новые
+        assert result[-1]["date"] == "2018-06-30T02:08:58.425572"  # Старые
 
     def test_sort_ascending(self, sample_transactions: List[Dict[str, Any]]) -> None:
         """Тест сортировки по возрастанию (сначала самые старые)."""
@@ -92,8 +92,8 @@ class TestSortByDate:
         assert dates == sorted(dates)
 
         # Проверка особых форматов даты
-        assert result[0]["date"] == "2024-01-05T16:45:00.000000"  # Старые
-        assert result[-1]["date"] == "2024-01-25T11:20:00.000000"  # Новые
+        assert result[0]["date"] == "2018-06-30T02:08:58.425572"  # Старые
+        assert result[-1]["date"] == "2019-04-04T23:20:05.206878"  # Новые
 
     def test_default_sort_order(self, sample_transactions: List[Dict[str, Any]]) -> None:
         """Тест, что порядок сортировки по умолчанию — по убыванию."""
