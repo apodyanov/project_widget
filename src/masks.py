@@ -4,7 +4,6 @@
 def get_mask_card_number(card_number: str) -> str:
     """Функция маскировки номера банковской карты показывает первые шесть и последние четыре цифры."""
 
-
     if not card_number.isdigit():
         raise ValueError("Номер карты должен содержать только цифры")
 

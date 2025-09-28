@@ -63,7 +63,6 @@ def get_date(date_string: str) -> str:
     "2024-03-11T02:26:18.671407" и возвращает строку с датой в формате:
     "ДД.ММ.ГГГГ" ("11.03.2024")."""
 
-
     if not date_string or not isinstance(date_string, str):
         raise ValueError("Ввод должен быть непустой строкой")
 

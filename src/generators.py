@@ -1,7 +1,6 @@
 """Модуль функций-генераторов для обработки транзакционных данных."""
 
 
-
 def filter_by_currency(transactions, currency_code):
     # Фильтрация транзакций по коду валюты с помощью генератора.
     for transaction in transactions:
