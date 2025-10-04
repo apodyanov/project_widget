@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.10.6">coverage.py v7.10.6</a>,
-            created at 2025-09-23 23:17 +0500
+            created at 2025-09-28 22:42 +0500
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -145,17 +145,16 @@
     <p class="pln"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t"><span class="str">    "2024-03-11T02:26:18.671407" &#1080; &#1074;&#1086;&#1079;&#1074;&#1088;&#1072;&#1097;&#1072;&#1077;&#1090; &#1089;&#1090;&#1088;&#1086;&#1082;&#1091; &#1089; &#1076;&#1072;&#1090;&#1086;&#1081; &#1074; &#1092;&#1086;&#1088;&#1084;&#1072;&#1090;&#1077;:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t64" href="#t64">64</a></span><span class="t"><span class="str">    "&#1044;&#1044;.&#1052;&#1052;.&#1043;&#1043;&#1043;&#1043;" ("11.03.2024")."""</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t65" href="#t65">65</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">date_string</span> <span class="key">or</span> <span class="key">not</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">date_string</span><span class="op">,</span> <span class="nam">str</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t68" href="#t68">68</a></span><span class="t">        <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="str">"&#1042;&#1074;&#1086;&#1076; &#1076;&#1086;&#1083;&#1078;&#1077;&#1085; &#1073;&#1099;&#1090;&#1100; &#1085;&#1077;&#1087;&#1091;&#1089;&#1090;&#1086;&#1081; &#1089;&#1090;&#1088;&#1086;&#1082;&#1086;&#1081;"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t69" href="#t69">69</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t">    <span class="key">try</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t71" href="#t71">71</a></span><span class="t">        <span class="com"># &#1055;&#1072;&#1088;&#1089;&#1080;&#1085;&#1075; ISO &#1092;&#1086;&#1088;&#1084;&#1072;&#1090;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t72" href="#t72">72</a></span><span class="t">        <span class="nam">dt</span> <span class="op">=</span> <span class="nam">datetime</span><span class="op">.</span><span class="nam">fromisoformat</span><span class="op">(</span><span class="nam">date_string</span><span class="op">.</span><span class="nam">replace</span><span class="op">(</span><span class="str">"Z"</span><span class="op">,</span> <span class="str">"+00:00"</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t73" href="#t73">73</a></span><span class="t">        <span class="com"># &#1060;&#1086;&#1088;&#1084;&#1072;&#1090;&#1080;&#1088;&#1091;&#1077;&#1084; &#1074; DD.MM.YYYY</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t74" href="#t74">74</a></span><span class="t">        <span class="key">return</span> <span class="nam">dt</span><span class="op">.</span><span class="nam">strftime</span><span class="op">(</span><span class="str">"%d.%m.%Y"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t75" href="#t75">75</a></span><span class="t">    <span class="key">except</span> <span class="op">(</span><span class="nam">ValueError</span><span class="op">,</span> <span class="nam">TypeError</span><span class="op">)</span> <span class="key">as</span> <span class="nam">e</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t76" href="#t76">76</a></span><span class="t">        <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="fst">f"</span><span class="fst">&#1053;&#1077;&#1074;&#1077;&#1088;&#1085;&#1099;&#1081; &#1092;&#1086;&#1088;&#1084;&#1072;&#1090; &#1076;&#1072;&#1090;&#1099;</span><span class="fst">"</span><span class="op">)</span> <span class="key">from</span> <span class="nam">e</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">date_string</span> <span class="key">or</span> <span class="key">not</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">date_string</span><span class="op">,</span> <span class="nam">str</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t">        <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="str">"&#1042;&#1074;&#1086;&#1076; &#1076;&#1086;&#1083;&#1078;&#1077;&#1085; &#1073;&#1099;&#1090;&#1100; &#1085;&#1077;&#1087;&#1091;&#1089;&#1090;&#1086;&#1081; &#1089;&#1090;&#1088;&#1086;&#1082;&#1086;&#1081;"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t68" href="#t68">68</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t69" href="#t69">69</a></span><span class="t">    <span class="key">try</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t">        <span class="com"># &#1055;&#1072;&#1088;&#1089;&#1080;&#1085;&#1075; ISO &#1092;&#1086;&#1088;&#1084;&#1072;&#1090;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t71" href="#t71">71</a></span><span class="t">        <span class="nam">dt</span> <span class="op">=</span> <span class="nam">datetime</span><span class="op">.</span><span class="nam">fromisoformat</span><span class="op">(</span><span class="nam">date_string</span><span class="op">.</span><span class="nam">replace</span><span class="op">(</span><span class="str">"Z"</span><span class="op">,</span> <span class="str">"+00:00"</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t72" href="#t72">72</a></span><span class="t">        <span class="com"># &#1060;&#1086;&#1088;&#1084;&#1072;&#1090;&#1080;&#1088;&#1091;&#1077;&#1084; &#1074; DD.MM.YYYY</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t73" href="#t73">73</a></span><span class="t">        <span class="key">return</span> <span class="nam">dt</span><span class="op">.</span><span class="nam">strftime</span><span class="op">(</span><span class="str">"%d.%m.%Y"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t74" href="#t74">74</a></span><span class="t">    <span class="key">except</span> <span class="op">(</span><span class="nam">ValueError</span><span class="op">,</span> <span class="nam">TypeError</span><span class="op">)</span> <span class="key">as</span> <span class="nam">e</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t75" href="#t75">75</a></span><span class="t">        <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="fst">f"</span><span class="fst">&#1053;&#1077;&#1074;&#1077;&#1088;&#1085;&#1099;&#1081; &#1092;&#1086;&#1088;&#1084;&#1072;&#1090; &#1076;&#1072;&#1090;&#1099;</span><span class="fst">"</span><span class="op">)</span> <span class="key">from</span> <span class="nam">e</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -165,7 +164,7 @@
             <a class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.10.6">coverage.py v7.10.6</a>,
-            created at 2025-09-23 23:17 +0500
+            created at 2025-09-28 22:42 +0500
         </p>
     </div>
 </footer>
