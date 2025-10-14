@@ -1,7 +1,7 @@
-import pytest
 import json
-import tempfile
 import os
+import tempfile
+
 from src.utils import load_transactions
 
 
@@ -16,36 +16,24 @@ class TestLoadTransactions:
                 "id": 441945886,
                 "state": "EXECUTED",
                 "date": "2019-08-26T10:50:58.294041",
-                "operationAmount": {
-                    "amount": "31957.58",
-                    "currency": {
-                        "name": "руб.",
-                        "code": "RUB"
-                    }
-                },
+                "operationAmount": {"amount": "31957.58", "currency": {"name": "руб.", "code": "RUB"}},
                 "description": "Перевод организации",
                 "from": "Maestro 1596837868705199",
-                "to": "Счет 64686473678894779589"
+                "to": "Счет 64686473678894779589",
             },
             {
                 "id": 41428829,
                 "state": "EXECUTED",
                 "date": "2019-07-03T18:35:29.512364",
-                "operationAmount": {
-                    "amount": "8221.37",
-                    "currency": {
-                        "name": "USD",
-                        "code": "USD"
-                    }
-                },
+                "operationAmount": {"amount": "8221.37", "currency": {"name": "USD", "code": "USD"}},
                 "description": "Перевод организации",
                 "from": "MasterCard 7158300734726758",
-                "to": "Счет 35383033474447895560"
-            }
+                "to": "Счет 35383033474447895560",
+            },
         ]
 
         # Создаем временный файл
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(test_data, f)
             temp_path = f.name
 
@@ -70,7 +58,7 @@ class TestLoadTransactions:
     def test_empty_file(self):
         """Тест для пустого файла"""
         # Создаем пустой файл
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             temp_path = f.name
 
         try:
@@ -82,7 +70,7 @@ class TestLoadTransactions:
     def test_invalid_json_format(self):
         """Тест для файла с невалидным JSON"""
         # Создаем файл с невалидным JSON
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("invalid json content {")
             temp_path = f.name
 
@@ -95,14 +83,9 @@ class TestLoadTransactions:
     def test_json_not_list(self):
         """Тест для случая, когда JSON содержит не список"""
         # Создаем файл с JSON объектом (не списком)
-        test_data = {
-            "transaction": {
-                "id": 1,
-                "amount": "100.0"
-            }
-        }
+        test_data = {"transaction": {"id": 1, "amount": "100.0"}}
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(test_data, f)
             temp_path = f.name
 
@@ -116,7 +99,7 @@ class TestLoadTransactions:
         """Тест для файла с пустым списком"""
         test_data = []
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(test_data, f)
             temp_path = f.name
 
@@ -129,7 +112,7 @@ class TestLoadTransactions:
 
     def test_file_with_only_whitespace(self):
         """Тест для файла содержащего только пробелы"""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("   \n   \t   ")
             temp_path = f.name
 
@@ -146,19 +129,13 @@ class TestLoadTransactions:
             {
                 "id": i,
                 "state": "EXECUTED",
-                "operationAmount": {
-                    "amount": str(i * 100.0),
-                    "currency": {
-                        "name": "руб.",
-                        "code": "RUB"
-                    }
-                },
-                "description": f"Транзакция {i}"
+                "operationAmount": {"amount": str(i * 100.0), "currency": {"name": "руб.", "code": "RUB"}},
+                "description": f"Транзакция {i}",
             }
             for i in range(100)
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(large_data, f)
             temp_path = f.name
 
@@ -180,25 +157,19 @@ class TestLoadTransactions:
                     "currency": {
                         "code": "RUB"
                         # Нет поля 'name'
-                    }
-                }
+                    },
+                },
                 # Нет поля 'description'
             },
             {
                 # Нет поля 'id'
                 "state": "EXECUTED",
-                "operationAmount": {
-                    "amount": "200.0",
-                    "currency": {
-                        "name": "USD",
-                        "code": "USD"
-                    }
-                },
-                "description": "Перевод"
-            }
+                "operationAmount": {"amount": "200.0", "currency": {"name": "USD", "code": "USD"}},
+                "description": "Перевод",
+            },
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(test_data, f)
             temp_path = f.name
 
@@ -215,17 +186,11 @@ class TestLoadTransactions:
             {
                 "id": 1,
                 "description": "Платеж с спец. символами: !@#$%^&*()",
-                "operationAmount": {
-                    "amount": "1000.50",
-                    "currency": {
-                        "name": "руб.",
-                        "code": "RUB"
-                    }
-                }
+                "operationAmount": {"amount": "1000.50", "currency": {"name": "руб.", "code": "RUB"}},
             }
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', encoding='utf-8', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", encoding="utf-8", delete=False) as f:
             json.dump(test_data, f, ensure_ascii=False)
             temp_path = f.name
 
@@ -245,13 +210,12 @@ class TestLoadTransactionsEdgeCases:
         result = load_transactions("nonexistent_dir/operations.json")
         assert result == []
 
-
     def test_very_large_file(self):
         """Тест для очень большого файла (в рамках разумного)"""
         # Создаем файл с большим количеством данных
         large_data = [{"id": i, "amount": str(i * 10)} for i in range(1000)]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(large_data, f)
             temp_path = f.name
 
@@ -269,7 +233,7 @@ def test_load_transactions_return_type():
 
     # Случай с валидным файлом
     test_data = [{"id": 1}]
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         json.dump(test_data, f)
         temp_path = f.name
 
@@ -284,7 +248,7 @@ def test_load_transactions_return_type():
     assert isinstance(result, list)
 
     # Случай с невалидным JSON
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         f.write("invalid")
         temp_path = f.name
 
@@ -308,20 +272,16 @@ class TestDataCorrectness:
                 "date": "2023-01-01T12:00:00.000000",
                 "operationAmount": {
                     "amount": "100.50",
-                    "currency": {
-                        "name": "US Dollar",
-                        "code": "USD",
-                        "symbol": "$"
-                    }
+                    "currency": {"name": "US Dollar", "code": "USD", "symbol": "$"},
                 },
                 "description": "Test transaction",
                 "from": "Account 123",
                 "to": "Account 456",
-                "extra_field": "extra_value"
+                "extra_field": "extra_value",
             }
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(complex_data, f)
             temp_path = f.name
 

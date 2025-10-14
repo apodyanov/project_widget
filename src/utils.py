@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 def load_transactions(file_path: str) -> List[Dict[str, Any]]:
@@ -25,7 +25,7 @@ def load_transactions(file_path: str) -> List[Dict[str, Any]]:
             return []
 
         # Читаем и парсим JSON файл
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             data = json.load(file)
 
         # Проверяем, что данные - это список
@@ -36,4 +36,3 @@ def load_transactions(file_path: str) -> List[Dict[str, Any]]:
 
     except (json.JSONDecodeError, PermissionError, OSError):
         return []
-

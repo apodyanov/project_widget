@@ -1,13 +1,14 @@
 import os
+from typing import Any, Dict
+
 import requests
-from typing import Dict, Any
 from dotenv import load_dotenv
 
 # Загружаем переменные окружения
 load_dotenv()
 
 
-def convert_currency_via_api(amount: float, from_currency: str, to_currency: str = 'RUB') -> float:
+def convert_currency_via_api(amount: float, from_currency: str, to_currency: str = "RUB") -> Any:
     """
     Конвертирует сумму из одной валюты в другую используя внешнее API endpoint /convert.
 
@@ -22,7 +23,7 @@ def convert_currency_via_api(amount: float, from_currency: str, to_currency: str
     Raises:
         Exception: Если произошла ошибка при запросе к API
     """
-    api_key = os.getenv('EXCHANGE_RATE_API_KEY')
+    api_key = os.getenv("EXCHANGE_RATE_API_KEY")
     if not api_key:
         raise ValueError("API key not found. Please set EXCHANGE_RATE_API_KEY in .env file")
 
@@ -35,12 +36,12 @@ def convert_currency_via_api(amount: float, from_currency: str, to_currency: str
 
         data = response.json()
 
-        if not data.get('success', False):
-            error_info = data.get('error', {}).get('info', 'Unknown error')
+        if not data.get("success", False):
+            error_info = data.get("error", {}).get("info", "Unknown error")
             raise Exception(f"API error: {error_info}")
 
         # Возвращаем готовую конвертированную сумму из ответа
-        result = data.get('result')
+        result = data.get("result")
         if result is None:
             raise Exception("Result not found in API response")
 
@@ -52,7 +53,7 @@ def convert_currency_via_api(amount: float, from_currency: str, to_currency: str
         raise Exception(f"Invalid response format: {str(e)}")
 
 
-def get_amount_in_rub(transaction: Dict[str, Any]) -> float:
+def get_amount_in_rub(transaction: Dict[str, Any]) -> Any:
     """
     Принимает на вход транзакцию и возвращает сумму транзакции в рублях.
 
@@ -64,21 +65,21 @@ def get_amount_in_rub(transaction: Dict[str, Any]) -> float:
     """
     try:
         # Извлекаем данные из вложенной структуры
-        operation_amount = transaction.get('operationAmount', {})
-        amount_str = operation_amount.get('amount', '0')
-        currency_info = operation_amount.get('currency', {})
-        currency_code = currency_info.get('code', 'RUB')
+        operation_amount = transaction.get("operationAmount", {})
+        amount_str = operation_amount.get("amount", "0")
+        currency_info = operation_amount.get("currency", {})
+        currency_code = currency_info.get("code", "RUB")
 
         # Преобразуем сумму в float
         amount = float(amount_str)
 
         # Если валюта уже рубли, возвращаем как есть
-        if currency_code == 'RUB':
+        if currency_code == "RUB":
             return amount
 
         # Если валюта USD или EUR, конвертируем через API endpoint /convert
-        if currency_code in ['USD', 'EUR']:
-            converted_amount = convert_currency_via_api(amount, currency_code, 'RUB')
+        if currency_code in ["USD", "EUR"]:
+            converted_amount = convert_currency_via_api(amount, currency_code, "RUB")
             return converted_amount
 
         # Для других валют возвращаем как есть (не конвертируем)

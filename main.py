@@ -4,7 +4,6 @@ from src.generators import card_number_generator, filter_by_currency, transactio
 from src.processing import filter_by_state, sort_by_date
 from src.widget import get_date, mask_account_card
 from src.decorators import log
-import os
 import random
 from src.utils import load_transactions
 from src.external_api import get_amount_in_rub
