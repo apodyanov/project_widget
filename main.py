@@ -4,6 +4,11 @@ from src.generators import card_number_generator, filter_by_currency, transactio
 from src.processing import filter_by_state, sort_by_date
 from src.widget import get_date, mask_account_card
 from src.decorators import log
+import os
+import random
+from src.utils import load_transactions
+from src.external_api import get_amount_in_rub
+
 
 if __name__ == "__main__":
     # Вызываем и выводим результат
@@ -182,3 +187,35 @@ def demonstrate_decorators() -> None:
         print(f"Expected error: {e}")
 
 demonstrate_decorators()
+
+print('-'*50)
+print('Домашнее задание 12.1 Библиотеки json, requests и datetime.')
+print()
+print('='*50)
+
+
+def main():
+    transactions = load_transactions("data/operations.json")
+    print(f"Загружено транзакций: {len(transactions)}")
+    print("\nСлучайная выборка 5 транзакций:")
+
+    # Случайная выборка 5 транзакций
+    if len(transactions) > 5:
+        random_transactions = random.sample(transactions, 5)
+    else:
+        random_transactions = transactions
+
+    # Обрабатываем случайные транзакции
+    for i, transaction in enumerate(random_transactions, 1):
+        amount_rub = get_amount_in_rub(transaction)
+
+        operation_amount = transaction.get('operationAmount', {})
+        original_amount = operation_amount.get('amount', '0')
+        currency_code = operation_amount.get('currency', {}).get('code', 'RUB')
+        description = transaction.get('description', 'Без описания')
+
+        print(f"\nТранзакция {i}: {description}")
+        print(f"  Сумма: {original_amount} {currency_code}")
+        print(f"  В рублях: {amount_rub:.2f} RUB")
+
+main()
