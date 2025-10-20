@@ -48,7 +48,7 @@ def load_transactions(file_path: str) -> List[Dict[str, Any]]:
             logger.error("Ошибка типа данных файла")
             return []
 
-        logger.info("Вывод списка с данными о финансовых транзакциях")
+        logger.info("Вывод списка с данными")
         return data
 
     except (json.JSONDecodeError, PermissionError, OSError) as ex:
