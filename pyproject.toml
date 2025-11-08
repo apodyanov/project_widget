@@ -30,6 +30,7 @@ mypy = "^1.17.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest-cov = "^7.0.0"
+pytest-mock = "^3.11.0"
 
 [tool.flake8]
 max-line-length = 119
