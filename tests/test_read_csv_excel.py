@@ -1,197 +1,190 @@
-import pytest
+from unittest.mock import mock_open, patch
+
 import pandas as pd
-import os
-from unittest.mock import patch
-import tempfile
+import pytest
+
 from src.read_csv_excel import read_transactions_csv, read_transactions_excel
 
 
 class TestReadTransactionsCSV:
     """Тесты для функции read_transactions_csv"""
 
-    def test_read_csv_success(self, capsys):
-        """Тест успешного чтения CSV файла"""
-        # Создаем временный CSV файл
-        csv_content = """дата,сумма,категория
-2024-01-01,1000,продукты
-2024-01-02,500,транспорт"""
+    def test_read_valid_csv_with_headers(self) -> None:
+        """Тест чтения корректного CSV файла с заголовками"""
+        csv_content = """date,amount,description,category
+2023-01-01,1000.00,Salary,Income
+2023-01-02,-500.50,Groceries,Food
+2023-01-03,-45.00,Transport,Transportation"""
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write(csv_content)
-            temp_file_path = f.name
+        expected = [
+            {"date": "2023-01-01", "amount": "1000.00", "description": "Salary", "category": "Income"},
+            {"date": "2023-01-02", "amount": "-500.50", "description": "Groceries", "category": "Food"},
+            {"date": "2023-01-03", "amount": "-45.00", "description": "Transport", "category": "Transportation"},
+        ]
 
-        try:
-            # Вызываем функцию
-            read_transactions_csv(temp_file_path)
+        with patch("builtins.open", mock_open(read_data=csv_content)):
+            result = read_transactions_csv("test.csv")
 
-            # Проверяем вывод
-            captured = capsys.readouterr()
-            assert "Строка 1: ['дата', 'сумма', 'категория']" in captured.out
-            assert "Строка 2: ['2024-01-01', '1000', 'продукты']" in captured.out
-            assert "Строка 3: ['2024-01-02', '500', 'транспорт']" in captured.out
+        assert result == expected
+        assert len(result) == 3
+        assert isinstance(result, list)
+        assert all(isinstance(item, dict) for item in result)
 
-        finally:
-            # Удаляем временный файл
-            os.unlink(temp_file_path)
-
-    def test_read_csv_file_not_found(self, capsys):
-        """Тест обработки отсутствующего файла"""
-        read_transactions_csv("nonexistent_file.csv")
-
-        captured = capsys.readouterr()
-        assert "Ошибка: Файл 'nonexistent_file.csv' не найден" in captured.out
-
-    def test_read_csv_empty_file(self, capsys):
+    def test_read_empty_csv(self) -> None:
         """Тест чтения пустого CSV файла"""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("")
-            temp_file_path = f.name
+        csv_content = "date,amount,description\n"
 
-        try:
-            read_transactions_csv(temp_file_path)
+        with patch("builtins.open", mock_open(read_data=csv_content)):
+            result = read_transactions_csv("empty.csv")
 
-            captured = capsys.readouterr()
-            # Пустой файл должен вывести только заголовок (если есть) или ничего
-            assert "Строка 1" in captured.out or captured.out == ""
+        assert result == []
+        assert isinstance(result, list)
 
-        finally:
-            os.unlink(temp_file_path)
+    def test_read_csv_only_headers(self) -> None:
+        """Тест чтения CSV только с заголовками без данных"""
+        csv_content = "date,amount,description,category\n"
 
-    @patch('builtins.open')
-    def test_read_csv_general_exception(self, mock_file, capsys):
-        """Тест обработки общего исключения"""
-        mock_file.side_effect = Exception("Test error")
+        with patch("builtins.open", mock_open(read_data=csv_content)):
+            result = read_transactions_csv("headers_only.csv")
 
-        read_transactions_csv("any_file.csv")
+        assert result == []
+        assert isinstance(result, list)
 
-        captured = capsys.readouterr()
-        assert "Ошибка: Test error" in captured.out
+    def test_file_not_found_csv(self) -> None:
+        """Тест обработки отсутствующего CSV файла"""
+        with patch("builtins.open", side_effect=FileNotFoundError("File not found")):
+            result = read_transactions_csv("nonexistent.csv")
+
+        assert result == []
+        assert isinstance(result, list)
+
+    def test_csv_reading_exception(self) -> None:
+        """Тест обработки исключений при чтении CSV"""
+        with patch("builtins.open", side_effect=Exception("Read error")):
+            result = read_transactions_csv("corrupted.csv")
+
+        assert result == []
+        assert isinstance(result, list)
 
 
 class TestReadTransactionsExcel:
     """Тесты для функции read_transactions_excel"""
 
-    def test_read_excel_success(self, capsys):
-        """Тест успешного чтения Excel файла"""
-        # Создаем тестовый DataFrame
-        test_data = {
-            'дата': ['2024-01-01', '2024-01-02'],
-            'сумма': [1000, 500],
-            'категория': ['продукты', 'транспорт']
+    def test_read_valid_excel(self) -> None:
+        """Тест чтения корректного Excel файла"""
+        mock_data = {
+            "date": ["2023-01-01", "2023-01-02", "2023-01-03"],
+            "amount": [1000.00, -500.50, -45.00],
+            "description": ["Salary", "Groceries", "Transport"],
+            "category": ["Income", "Food", "Transportation"],
         }
-        df = pd.DataFrame(test_data)
+        mock_df = pd.DataFrame(mock_data)
 
-        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
-            temp_file_path = f.name
+        expected = [
+            {"date": "2023-01-01", "amount": 1000.00, "description": "Salary", "category": "Income"},
+            {"date": "2023-01-02", "amount": -500.50, "description": "Groceries", "category": "Food"},
+            {"date": "2023-01-03", "amount": -45.00, "description": "Transport", "category": "Transportation"},
+        ]
 
-        try:
-            # Сохраняем DataFrame в Excel
-            df.to_excel(temp_file_path, index=False)
+        with patch("pandas.read_excel", return_value=mock_df):
+            result = read_transactions_excel("test.xlsx")
 
-            # Вызываем функцию
-            read_transactions_excel(temp_file_path)
+        assert result == expected
+        assert len(result) == 3
+        assert isinstance(result, list)
+        assert all(isinstance(item, dict) for item in result)
 
-            # Проверяем вывод
-            captured = capsys.readouterr()
-            assert "Построчный вывод:" in captured.out
-            assert "Строка 1:" in captured.out
-            assert "Строка 2:" in captured.out
-            assert "продукты" in captured.out
-            assert "транспорт" in captured.out
+    def test_read_empty_excel(self) -> None:
+        """Тест чтения пустого Excel файла"""
+        mock_df = pd.DataFrame()
 
-        finally:
-            os.unlink(temp_file_path)
+        with patch("pandas.read_excel", return_value=mock_df):
+            result = read_transactions_excel("empty.xlsx")
 
-    def test_read_excel_file_not_found(self, capsys):
+        assert result == []
+        assert isinstance(result, list)
+
+    def test_file_not_found_excel(self) -> None:
         """Тест обработки отсутствующего Excel файла"""
-        read_transactions_excel("nonexistent_file.xlsx")
+        with patch("pandas.read_excel", side_effect=FileNotFoundError("File not found")):
+            result = read_transactions_excel("nonexistent.xlsx")
 
-        captured = capsys.readouterr()
-        assert "Ошибка: Файл 'nonexistent_file.xlsx' не найден" in captured.out
+        assert result == []
+        assert isinstance(result, list)
 
-    def test_read_excel_empty_dataframe(self, capsys):
-        """Тест чтения Excel файла с пустыми данными"""
-        # Создаем пустой DataFrame
-        df = pd.DataFrame()
+    def test_excel_reading_exception(self) -> None:
+        """Тест обработки исключений при чтении Excel"""
+        with patch("pandas.read_excel", side_effect=Exception("Excel read error")):
+            result = read_transactions_excel("corrupted.xlsx")
 
-        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
-            temp_file_path = f.name
-
-        try:
-            df.to_excel(temp_file_path, index=False)
-            read_transactions_excel(temp_file_path)
-
-            captured = capsys.readouterr()
-            assert "Построчный вывод:" in captured.out
-            # Для пустого DataFrame не должно быть строк с данными
-
-        finally:
-            os.unlink(temp_file_path)
-
-    @patch('pandas.read_excel')
-    def test_read_excel_general_exception(self, mock_read_excel, capsys):
-        """Тест обработки общего исключения при чтении Excel"""
-        mock_read_excel.side_effect = Exception("Excel read error")
-
-        read_transactions_excel("any_file.xlsx")
-
-        captured = capsys.readouterr()
-        assert "Ошибка: Excel read error" in captured.out
-
-    def test_read_excel_with_different_encodings(self, capsys):
-        """Тест чтения Excel с различными структурами данных"""
-        test_data = {
-            'ID': [1, 2, 3],
-            'Amount': [100.50, 200.75, 300.25],
-            'Description': ['Food', 'Transport', 'Entertainment']
-        }
-        df = pd.DataFrame(test_data)
-
-        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
-            temp_file_path = f.name
-
-        try:
-            df.to_excel(temp_file_path, index=False)
-            read_transactions_excel(temp_file_path)
-
-            captured = capsys.readouterr()
-            assert "Построчный вывод:" in captured.out
-            assert "Строка 1:" in captured.out
-            assert "Строка 2:" in captured.out
-            assert "Строка 3:" in captured.out
-
-        finally:
-            os.unlink(temp_file_path)
+        assert result == []
+        assert isinstance(result, list)
 
 
+class TestIntegration:
+    """Интеграционные тесты для проверки взаимодействия"""
 
-# Фикстуры для тестов
-@pytest.fixture
-def sample_csv_file():
-    """Фикстура для создания тестового CSV файла"""
-    content = "name,age,city\nJohn,30,New York\nAlice,25,London"
+    def test_both_functions_return_lists(self) -> None:
+        """Тест, что обе функции всегда возвращают списки"""
+        # Даже при ошибках функции должны возвращать списки
+        with patch("builtins.open", side_effect=FileNotFoundError()):
+            csv_result = read_transactions_csv("nonexistent.csv")
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-        f.write(content)
-        temp_path = f.name
+        with patch("pandas.read_excel", side_effect=FileNotFoundError()):
+            excel_result = read_transactions_excel("nonexistent.xlsx")
 
-    yield temp_path
-    os.unlink(temp_path)
+        assert isinstance(csv_result, list)
+        assert isinstance(excel_result, list)
+
+    def test_transactions_structure(self) -> None:
+        """Тест структуры возвращаемых транзакций"""
+        csv_content = """date,amount,description
+2023-01-01,1000.00,Salary"""
+
+        with patch("builtins.open", mock_open(read_data=csv_content)):
+            transactions = read_transactions_csv("test.csv")
+
+        # Проверяем структуру первой транзакции
+        if transactions:
+            first_transaction = transactions[0]
+            assert isinstance(first_transaction, dict)
+            assert "date" in first_transaction
+            assert "amount" in first_transaction
+            assert "description" in first_transaction
+
+    @pytest.mark.parametrize("file_path", [None, "custom_path.csv"])
+    def test_default_file_path(self, file_path: str) -> None:
+        """Тест работы с default file path"""
+        csv_content = "date,amount,description\n2023-01-01,1000,Salary"
+
+        with patch("builtins.open", mock_open(read_data=csv_content)):
+            with patch("src.read_csv_excel.TRANSACTIONS_CSV_FILE_PATH", "default.csv"):
+                if file_path is None:
+                    result = read_transactions_csv()
+                else:
+                    result = read_transactions_csv(file_path)
+
+        assert isinstance(result, list)
 
 
-@pytest.fixture
-def sample_excel_file():
-    """Фикстура для создания тестового Excel файла"""
-    data = {
-        'Product': ['Apple', 'Banana', 'Orange'],
-        'Price': [1.2, 0.8, 1.5],
-        'Quantity': [10, 15, 8]
-    }
-    df = pd.DataFrame(data)
+# Тесты для проверки конкретных сценариев из финансового приложения
+class TestFinancialScenarios:
+    """Тесты для финансовых сценариев"""
 
-    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
-        temp_path = f.name
-        df.to_excel(temp_path, index=False)
+    def test_bank_statement_format(self) -> None:
+        """Тест формата банковской выписки"""
+        bank_statement_content = """Дата операции,Сумма,Категория,Описание
+2024-01-15,1500.00,Доход,Зарплата
+2024-01-16,-250.50,Продукты,Супермаркет
+2024-01-17,-45.00,Транспорт,Метро"""
 
-    yield temp_path
-    os.unlink(temp_path)
+        expected = [
+            {"Дата операции": "2024-01-15", "Сумма": "1500.00", "Категория": "Доход", "Описание": "Зарплата"},
+            {"Дата операции": "2024-01-16", "Сумма": "-250.50", "Категория": "Продукты", "Описание": "Супермаркет"},
+            {"Дата операции": "2024-01-17", "Сумма": "-45.00", "Категория": "Транспорт", "Описание": "Метро"},
+        ]
+
+        with patch("builtins.open", mock_open(read_data=bank_statement_content)):
+            result = read_transactions_csv("bank_statement.csv")
+
+        assert result == expected
