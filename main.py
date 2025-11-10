@@ -1,5 +1,5 @@
 """Главный модуль запуска программы."""
-
+from config import TRANSACTIONS_CSV_FILE_PATH, TRANSACTIONS_EXCEL_FILE_PATH
 from src.generators import card_number_generator, filter_by_currency, transaction_descriptions
 from src.processing import filter_by_state, sort_by_date
 from src.widget import get_date, mask_account_card
@@ -7,6 +7,9 @@ from src.decorators import log
 import random
 from src.utils import load_transactions
 from src.external_api import get_amount_in_rub
+import csv
+import pandas as pd
+from src.read_csv_excel import read_transactions_csv, read_transactions_excel
 
 
 if __name__ == "__main__":
@@ -218,3 +221,18 @@ def main():
         print(f"  В рублях: {amount_rub:.2f} RUB")
 
 main()
+
+print('-'*50)
+print('Домашнее задание 13.1 Библиотеки csv и pandas')
+print()
+print('='*50)
+
+print("\nФункция для чтения и вывода CSV файла")
+print("-" * 30)
+read_transactions_csv(TRANSACTIONS_CSV_FILE_PATH)
+print("\nФункция для чтения и вывода EXCEL файла")
+print("-" * 30)
+read_transactions_excel(TRANSACTIONS_EXCEL_FILE_PATH)
+
+
+
