@@ -7,8 +7,6 @@ from src.decorators import log
 import random
 from src.utils import load_transactions
 from src.external_api import get_amount_in_rub
-import csv
-import pandas as pd
 from src.read_csv_excel import read_transactions_csv, read_transactions_excel
 
 
