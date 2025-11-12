@@ -1,7 +1,9 @@
-import json
+import json, random
 import logging
 import os
 from typing import Any, Dict, List
+
+from external_api import get_amount_in_rub
 
 logger = logging.getLogger("utils")
 logger.setLevel(logging.DEBUG)
@@ -54,3 +56,34 @@ def load_transactions(file_path: str) -> List[Dict[str, Any]]:
     except (json.JSONDecodeError, PermissionError, OSError) as ex:
         logger.error("Произошла ошибка: %s", ex)
         return []
+
+
+print('-'*50)
+print('Домашнее задание 12.1 Библиотеки json, requests и datetime.')
+print()
+print('='*50)
+
+
+def main():
+    transactions = load_transactions("data/operations.json")
+    print(f"Загружено транзакций: {len(transactions)}")
+    print("\nСлучайная выборка 5 транзакций:")
+
+    # Случайная выборка 5 транзакций
+    if len(transactions) > 5:
+        random_transactions = random.sample(transactions, 5)
+    else:
+        random_transactions = transactions
+
+    # Обрабатываем случайные транзакции
+    for i, transaction in enumerate(random_transactions, 1):
+        amount_rub = get_amount_in_rub(transaction)
+
+        operation_amount = transaction.get('operationAmount', {})
+        original_amount = operation_amount.get('amount', '0')
+        currency_code = operation_amount.get('currency', {}).get('code', 'RUB')
+        description = transaction.get('description', 'Без описания')
+
+        print(f"\nТранзакция {i}: {description}")
+        print(f"  Сумма: {original_amount} {currency_code}")
+        print(f"  В рублях: {amount_rub:.2f} RUB")
