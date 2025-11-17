@@ -3,7 +3,7 @@ from unittest.mock import mock_open, patch
 import pandas as pd
 import pytest
 
-from src.read_csv_excel import read_transactions_csv, read_transactions_excel
+from src.read_json_csv_excel import read_transactions_csv, read_transactions_excel
 
 
 class TestReadTransactionsCSV:
