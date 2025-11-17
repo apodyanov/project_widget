@@ -76,35 +76,30 @@ def get_amount_in_rub(transaction: Dict[str, Any]) -> Any:
         float: Сумма транзакции в рублях
     """
     try:
-        # Извлекаем данные из вложенной структуры
-        operation_amount = transaction.get("operationAmount", {})
-        amount_str = "0"
-        currency_code = "RUB"
+        # Извлекаем информацию о сумме и валюте
+        operation_amount = transaction.get('operationAmount', {})
 
-        # Проверяем, что operation_amount - это словарь
-        if isinstance(operation_amount, dict):
-            amount_str = str(operation_amount.get("amount", "0"))
-            currency_info = operation_amount.get("currency", {})
+        if not operation_amount:
+            return 0.0
 
-            # Проверяем, что currency_info - это словарь
-            if isinstance(currency_info, dict):
-                currency_code = str(currency_info.get("code", "RUB"))
+        amount_str = operation_amount.get('amount', '0')
+        currency_info = operation_amount.get('currency', {})
+        currency_code = currency_info.get('code', 'RUB')
 
-        # Преобразуем сумму в float
-        amount = float(amount_str)
+        # Пытаемся преобразовать сумму в число
+        try:
+            amount = float(amount_str)
+        except (ValueError, TypeError):
+            return 0.0
 
-        # Если валюта уже рубли, возвращаем как есть
-        if currency_code == "RUB":
+        # Если уже рубли, возвращаем как есть
+        if currency_code == 'RUB':
             return amount
 
-        # Если валюта USD или EUR, конвертируем через API endpoint /convert
-        if currency_code in ["USD", "EUR"]:
-            converted_amount = convert_currency_via_api(amount, currency_code, "RUB")
-            return converted_amount
+        # Конвертируем через API
+        converted_amount = convert_currency_via_api(amount, currency_code, "RUB")
+        return converted_amount
 
-        # Для других валют возвращаем как есть (не конвертируем)
-        return amount
-
-    except (ValueError, TypeError):
-        # Если не удалось преобразовать сумму в число
+    except Exception:
+        # В случае любой ошибки возвращаем 0
         return 0.0
