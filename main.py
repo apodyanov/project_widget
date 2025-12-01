@@ -1,238 +1,200 @@
-"""Главный модуль запуска программы."""
-from config import TRANSACTIONS_CSV_FILE_PATH, TRANSACTIONS_EXCEL_FILE_PATH
-from src.generators import card_number_generator, filter_by_currency, transaction_descriptions
-from src.processing import filter_by_state, sort_by_date
-from src.widget import get_date, mask_account_card
-from src.decorators import log
-import random
-from src.utils import load_transactions
-from src.external_api import get_amount_in_rub
-import csv
-import pandas as pd
-from src.read_csv_excel import read_transactions_csv, read_transactions_excel
+"""Главный модуль запуска программы, который отвечает за основную логику проекта
+и связывает функциональности между собой."""
+
+from config import TRANSACTIONS_CSV_FILE_PATH, TRANSACTIONS_EXCEL_FILE_PATH, TRANSACTIONS_JSON_FILE_PATH
+from src.final_modul import (
+    extract_categories_from_transactions,
+    filter_rub_transactions,
+    format_transaction_display,
+    get_search_suggestions,
+    get_status_input_with_suggestions,
+    get_user_choice,
+    handle_empty_status_filter,
+    process_bank_operations,
+    process_bank_search,
+    sort_by_date,
+)
+from src.read_json_csv_excel import (
+    FileLoadError,
+    FileReadError,
+    load_transactions,
+    read_transactions_csv,
+    read_transactions_excel,
+)
+
+
+def main() -> None:
+    """Основная функция программы"""
+
+    print("Привет! Добро пожаловать в программу работы с банковскими транзакциями.")
+    print("Выберите необходимый пункт меню:")
+    print("1. Получить информацию о транзакциях из JSON-файла")
+    print("2. Получить информацию о транзакциях из CSV-файла")
+    print("3. Получить информацию о транзакциях из XLSX-файла")
+
+    file_choice = get_user_choice("Ваш выбор: ", ["1", "2", "3"])
+
+    if file_choice == "1":
+        print("Для обработки выбран JSON-файл.")
+        file_path = TRANSACTIONS_JSON_FILE_PATH
+        try:
+            transactions = load_transactions(file_path)
+        except FileLoadError as e:
+            print(f"Ошибка загрузки JSON файла: {e}")
+            return
+    elif file_choice == "2":
+        print("Для обработки выбран CSV-файл.")
+        file_path = TRANSACTIONS_CSV_FILE_PATH
+        try:
+            transactions = read_transactions_csv(file_path)
+        except FileReadError as e:
+            print(f"Ошибка загрузки CSV файла: {e}")
+            return
+    else:  # file_choice == '3'
+        print("Для обработки выбран XLSX-файл.")
+        file_path = TRANSACTIONS_EXCEL_FILE_PATH
+        try:
+            transactions = read_transactions_excel(file_path)
+        except FileReadError as e:
+            print(f"Ошибка загрузки Excel файла: {e}")
+            return
+
+    # Проверка загрузки данных
+    if not transactions:
+        print("Не удалось загрузить транзакции или файл пуст")
+        return
+
+    # Фильтрация по статусу
+    status_processing_complete = False
+    filtered_transactions = []
+
+    while not status_processing_complete:
+        # Используем улучшенную функцию с подсказками
+        selected_status = get_status_input_with_suggestions(transactions)
+        filtered_transactions = process_bank_search(transactions, selected_status)
+
+        if filtered_transactions:
+            print(f'Операции отфильтрованы по статусу "{selected_status}"')
+            print(f"Найдено операций: {len(filtered_transactions)}")
+            status_processing_complete = True
+        else:
+            # Обрабатываем ситуацию, когда транзакций с выбранным статусом нет
+            result = handle_empty_status_filter(transactions, selected_status)
+
+            if result["action"] == "exit":
+                print("Завершение программы...")
+                return
+            else:
+                filtered_transactions = result["transactions"]
+                status_processing_complete = True
+
+    # Сортировка по дате
+    sort_choice = get_user_choice("\nОтсортировать операции по дате? Да/Нет: ", ["да", "нет", "д", "н"]).lower()
+
+    if sort_choice in ["да", "д"]:
+        order_choice = get_user_choice(
+            "Отсортировать по возрастанию или по убыванию? ",
+            ["по возрастанию", "по убыванию", "возрастанию", "убыванию"],
+        )
+
+        reverse = order_choice in ["по убыванию", "убыванию"]
+        filtered_transactions = sort_by_date(filtered_transactions, reverse=reverse)
+        order_text = "по убыванию" if reverse else "по возрастанию"
+        print(f"Операции отсортированы {order_text}")
+    else:
+        print("Сортировка по дате не применена")
+
+    # Фильтрация рублевых транзакций
+    rub_choice = get_user_choice("\nВыводить только рублевые транзакции? Да/Нет: ", ["да", "нет", "д", "н"])
+
+    if rub_choice in ["да", "д"]:
+        filtered_transactions = filter_rub_transactions(filtered_transactions)
+        print("Выводятся только рублевые транзакции")
+        print(f"Осталось операций: {len(filtered_transactions)}")
+    else:
+        print("Выводятся транзакции в любой валюте")
+
+    # Проверка после фильтрации рублевых транзакций
+    if not filtered_transactions:
+        print("\nНе найдено ни одной транзакции, подходящей под ваши условия фильтрации")
+        return
+
+    # Поиск по описанию
+    search_choice = get_user_choice(
+        "\nОтфильтровать список транзакций по определенному слову в описании? Да/Нет: ", ["да", "нет", "д", "н"]
+    )
+
+    if search_choice in ["да", "д"]:
+        search_completed = False
+
+        # Получаем подсказки по популярным словам (только если есть транзакции)
+        suggestions = []
+        if filtered_transactions:
+            suggestions = get_search_suggestions(filtered_transactions)
+
+        while not search_completed:
+            # Показываем подсказки, если они есть
+            if suggestions:
+                print(f"\nНаиболее часто встречающиеся слова в описаниях: {', '.join(suggestions)}")
+
+            search_word = input("Введите слово для поиска в описании: ").strip()
+
+            if not search_word:
+                print("Поисковый запрос не может быть пустым. Попробуйте снова.")
+                continue
+
+            # Выполняем поиск
+            search_results = process_bank_search(filtered_transactions, search_word)
+
+            if search_results:
+                # Если найдены результаты, применяем фильтр
+                filtered_transactions = search_results
+                print(f'Операции отфильтрованы по слову "{search_word}"')
+                print(f"Найдено операций: {len(filtered_transactions)}")
+                search_completed = True
+            else:
+                # Если результатов нет, предлагаем выбор
+                print(f'\nПо запросу "{search_word}" не найдено ни одной транзакции.')
+                print("Выберите действие:")
+                print("1. Ввести другое слово для поиска")
+                print("2. Продолжить без фильтрации по описанию")
+
+                retry_choice = get_user_choice("Ваш выбор (1 или 2): ", ["1", "2"])
+
+                if retry_choice == "1":
+                    # Продолжаем цикл с новым запросом
+                    print("Попробуйте ввести другое слово.")
+                    continue
+                else:
+                    # Выходим из цикла без применения фильтра
+                    print("Фильтрация по описанию отменена.")
+                    search_completed = True
+    else:
+        print("Фильтрация по ключевому слову не применена")
+
+    # Финальная проверка на пустую выборку
+    if not filtered_transactions:
+        print("\nНе найдено ни одной транзакции, подходящей под ваши условия фильтрации")
+        return
+
+    # Вывод результатов
+    print("\nРаспечатываю итоговый список транзакций...")
+    print(f"\nВсего банковских операций в выборке: {len(filtered_transactions)},")
+    category_stats = process_bank_operations(
+        filtered_transactions, extract_categories_from_transactions(filtered_transactions)
+    )
+
+    print("\nв том числе по категориям:\n")
+    for category, count in category_stats.items():
+        print(f"  - {category}: {count}")
+
+    print()
+    print("-" * 60)
+
+    for i, transaction in enumerate(filtered_transactions, 1):
+        print(format_transaction_display(transaction))
+        print("-" * 60)
 
 
 if __name__ == "__main__":
-    # Вызываем и выводим результат
-
-    print(mask_account_card("Maestro 1596837868705199"))
-    print(mask_account_card("Счет 64686473678894779589"))
-    print(mask_account_card("MasterCard 7158300734726758"))
-    print(mask_account_card("Счет 35383033474447895560"))
-    print(mask_account_card("Visa Classic 6831982476737658"))
-    print(mask_account_card("Visa Platinum 8990922113665229"))
-    print(mask_account_card("Visa Gold 5999414228426353"))
-    print(mask_account_card("Счет 73654108430135874305"))
-    print(get_date("2024-03-11T02:26:18.671407"))
-    # Домашнее задание 10.1 Продвинутый Git
-    print(
-        filter_by_state(
-            [
-                {"id": 41428829, "state": "EXECUTED", "date": "2019-07-03T18:35:29.512364"},
-                {"id": 939719570, "state": "EXECUTED", "date": "2018-06-30T02:08:58.425572"},
-                {"id": 594226727, "state": "CANCELED", "date": "2018-09-12T21:27:25.241689"},
-                {"id": 615064591, "state": "CANCELED", "date": "2018-10-14T08:21:33.419441"},
-            ]
-        )
-    )
-    print(
-        sort_by_date(
-            [
-                {"id": 41428829, "state": "EXECUTED", "date": "2019-07-03T18:35:29.512364"},
-                {"id": 939719570, "state": "EXECUTED", "date": "2018-06-30T02:08:58.425572"},
-                {"id": 594226727, "state": "CANCELED", "date": "2018-09-12T21:27:25.241689"},
-                {"id": 615064591, "state": "CANCELED", "date": "2018-10-14T08:21:33.419441"},
-            ]
-        )
-    )
-print('-'*50)
-print('Домашнее задание 11.1 Включения и генераторы.')
-
-transactions = [
-    {
-        "id": 939719570,
-        "state": "EXECUTED",
-        "date": "2018-06-30T02:08:58.425572",
-        "operationAmount": {"amount": "9824.07", "currency": {"name": "USD", "code": "USD"}},
-        "description": "Перевод организации",
-        "from": "Счет 75106830613657916952",
-        "to": "Счет 11776614605963066702",
-    },
-    {
-        "id": 142264268,
-        "state": "EXECUTED",
-        "date": "2019-04-04T23:20:05.206878",
-        "operationAmount": {"amount": "79114.93", "currency": {"name": "USD", "code": "USD"}},
-        "description": "Перевод со счета на счет",
-        "from": "Счет 19708645243227258542",
-        "to": "Счет 75651667383060284188",
-    },
-    {
-        "id": 873106923,
-        "state": "EXECUTED",
-        "date": "2019-03-23T01:09:46.296404",
-        "operationAmount": {"amount": "43318.34", "currency": {"name": "руб.", "code": "RUB"}},
-        "description": "Перевод со счета на счет",
-        "from": "Счет 44812258784861134719",
-        "to": "Счет 74489636417521191160",
-    },
-    {
-        "id": 895315941,
-        "state": "EXECUTED",
-        "date": "2018-08-19T04:27:37.904916",
-        "operationAmount": {"amount": "56883.54", "currency": {"name": "USD", "code": "USD"}},
-        "description": "Перевод с карты на карту",
-        "from": "Visa Classic 6831982476737658",
-        "to": "Visa Platinum 8990922113665229",
-    },
-    {
-        "id": 594226727,
-        "state": "CANCELED",
-        "date": "2018-09-12T21:27:25.241689",
-        "operationAmount": {"amount": "67314.70", "currency": {"name": "руб.", "code": "RUB"}},
-        "description": "Перевод организации",
-        "from": "Visa Platinum 1246377376343588",
-        "to": "Счет 14211924144426031657",
-    },
-]
-print('Фильтр по транзакции с валютой: USD')
-print(next(filter_by_currency(transactions, "USD")))
-print('Вывод описания транзакции')
-print(next(transaction_descriptions(transactions)))
-print('Генерация номера карты')
-print(next(card_number_generator(1234567891234567, 9876543212558979)))
-print('-'*50)
-print('Домашнее задание 11.2 Декораторы.')
-
-
-def demonstrate_decorators() -> None:
-    """Demonstrate decorators functionality."""
-    print("Демонстрация модуля декораторы")
-    print("=" * 50)
-
-    # Пример 1: Логирование в консоль
-    @log()
-    def calculate_sum(a: int, b: int) -> int:
-        """Калькуляция суммы двух чисел."""
-        return a + b
-
-    @log()
-    def divide_numbers(x: float, y: float) -> float:
-        """Деление двух чисел."""
-        if y == 0:
-            raise ValueError("На ноль делить нельзя")
-        return x / y
-
-    print("1. Пример записи в консоль:")
-    print("-" * 30)
-
-    # Успешное выполнение
-    print("Успешное выполнение:")
-    result1 = calculate_sum(10, 20)
-    print(f"Результат: {result1}")
-
-    # Ошибка
-    print("\nВыполнение с ошибкой:")
-    try:
-        divide_numbers(10, 0)
-    except ValueError as e:
-        print(f"Обнаружена ошибка: {e}")
-
-    # Пример 2: Логирование в файл
-    print("\n2. Пример записи в файл:")
-    print("-" * 30)
-
-    @log(filename="demo.log")
-    def process_data(data: list, multiplier: int = 2) -> list:
-        """Процесс образования списка."""
-        return [x * multiplier for x in data]
-
-    @log(filename="demo.log")
-    def risky_operation(value: int) -> str:
-        """Рисковые значения, которые могут привести к неудаче."""
-        if value < 0:
-            raise RuntimeError("Отрицательные значения не допускаются")
-        return f"Обработка: {value}"
-
-    # Успешное выполнение в файл
-    print("Успешное выполнение:")
-    result2 = process_data([1, 2, 3, 4, 5])
-    print(f"Результат обработки данных: {result2}")
-
-    # Ошибка в файл
-    print("\nВыполнение с ошибкой:")
-    try:
-        risky_operation(-5)
-    except RuntimeError as e:
-        print(f"Обнаружена ошибка: {e}")
-
-    print("\nПроверьте файл 'demo.log' для детализации")
-
-    # Пример 3: Декоратор с существующими функциями
-    print("\n3. Декоратор с существующими функциями:")
-    print("-" * 30)
-
-    from src.masks import get_mask_card_number
-
-    # Декорируем существующую функцию
-    print("Успешное выполнение:")
-    masked_card = log()(get_mask_card_number)
-
-    result3 = masked_card("1234567812345678")
-    print(f"Маскировка номера карты: {result3}")
-
-    # Пытаемся декорировать с ошибкой
-    print("\nВыполнение с ошибкой:")
-    try:
-        masked_card("неверный ввод")  # Должно вызвать ошибку
-    except ValueError as e:
-        print(f"Expected error: {e}")
-
-demonstrate_decorators()
-
-print('-'*50)
-print('Домашнее задание 12.1 Библиотеки json, requests и datetime.')
-print()
-print('='*50)
-
-
-def main():
-    transactions = load_transactions("data/operations.json")
-    print(f"Загружено транзакций: {len(transactions)}")
-    print("\nСлучайная выборка 5 транзакций:")
-
-    # Случайная выборка 5 транзакций
-    if len(transactions) > 5:
-        random_transactions = random.sample(transactions, 5)
-    else:
-        random_transactions = transactions
-
-    # Обрабатываем случайные транзакции
-    for i, transaction in enumerate(random_transactions, 1):
-        amount_rub = get_amount_in_rub(transaction)
-
-        operation_amount = transaction.get('operationAmount', {})
-        original_amount = operation_amount.get('amount', '0')
-        currency_code = operation_amount.get('currency', {}).get('code', 'RUB')
-        description = transaction.get('description', 'Без описания')
-
-        print(f"\nТранзакция {i}: {description}")
-        print(f"  Сумма: {original_amount} {currency_code}")
-        print(f"  В рублях: {amount_rub:.2f} RUB")
-
-main()
-
-print('-'*50)
-print('Домашнее задание 13.1 Библиотеки csv и pandas')
-print()
-print('='*50)
-
-print("\nФункция для чтения и вывода CSV файла")
-print("-" * 30)
-read_transactions_csv(TRANSACTIONS_CSV_FILE_PATH)
-print("\nФункция для чтения и вывода EXCEL файла")
-print("-" * 30)
-read_transactions_excel(TRANSACTIONS_EXCEL_FILE_PATH)
-
-
-
+    main()

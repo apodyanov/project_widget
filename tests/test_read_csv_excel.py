@@ -1,190 +1,184 @@
-from unittest.mock import mock_open, patch
+from typing import List, Dict, Any
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
-from src.read_csv_excel import read_transactions_csv, read_transactions_excel
+from src.read_json_csv_excel import read_transactions_csv, read_transactions_excel, FileReadError
+
+
+@pytest.fixture
+def sample_csv_content() -> str:
+    """Фикстура с корректным CSV содержимым"""
+    return """id;state;date;amount;currency_name;currency_code;from;to;description
+650703;EXECUTED;2023-09-05T11:30:32Z;16210.0;Sol;PEN;Счет 58803664561298323391;Счет 39745660563456619397;Перевод организации
+441945;EXECUTED;2019-08-26T10:50:58Z;31957.58;руб.;RUB;Maestro 1596837868705199;Счет 64686473678894779589;Перевод организации
+"""
+
+
+@pytest.fixture
+def sample_excel_data() -> List[Dict[str, Any]]:
+    """Фикстура с корректными данными для Excel"""
+    return [
+        {
+            'id': 650703,
+            'state': 'EXECUTED',
+            'date': '2023-09-05T11:30:32Z',
+            'amount': 16210.0,
+            'currency_name': 'Sol',
+            'currency_code': 'PEN',
+            'from': 'Счет 58803664561298323391',
+            'to': 'Счет 39745660563456619397',
+            'description': 'Перевод организации'
+        }
+    ]
+
+
+@pytest.fixture
+def temp_csv_file(tmp_path, sample_csv_content):
+    """Создает временный CSV файл для тестов"""
+    csv_file = tmp_path / "test_transactions.csv"
+    csv_file.write_text(sample_csv_content, encoding='utf-8')
+    return csv_file
+
+
+@pytest.fixture
+def temp_excel_file(tmp_path, sample_excel_data):
+    """Создает временный Excel файл для тестов"""
+    excel_file = tmp_path / "test_transactions.xlsx"
+    df = pd.DataFrame(sample_excel_data)
+    df.to_excel(excel_file, index=False)
+    return excel_file
+
 
 
 class TestReadTransactionsCSV:
     """Тесты для функции read_transactions_csv"""
 
-    def test_read_valid_csv_with_headers(self) -> None:
-        """Тест чтения корректного CSV файла с заголовками"""
-        csv_content = """date,amount,description,category
-2023-01-01,1000.00,Salary,Income
-2023-01-02,-500.50,Groceries,Food
-2023-01-03,-45.00,Transport,Transportation"""
+    def test_read_valid_csv_with_headers(self, temp_csv_file):
+        """Тест чтения корректного CSV файла"""
+        result = read_transactions_csv(str(temp_csv_file))
 
-        expected = [
-            {"date": "2023-01-01", "amount": "1000.00", "description": "Salary", "category": "Income"},
-            {"date": "2023-01-02", "amount": "-500.50", "description": "Groceries", "category": "Food"},
-            {"date": "2023-01-03", "amount": "-45.00", "description": "Transport", "category": "Transportation"},
-        ]
+        assert len(result) == 2
+        assert result[0]['id'] == '650703'
+        assert result[0]['state'] == 'EXECUTED'
+        assert result[0]['operationAmount']['amount'] == '16210.0'
+        assert result[0]['operationAmount']['currency']['code'] == 'PEN'
 
-        with patch("builtins.open", mock_open(read_data=csv_content)):
-            result = read_transactions_csv("test.csv")
-
-        assert result == expected
-        assert len(result) == 3
-        assert isinstance(result, list)
-        assert all(isinstance(item, dict) for item in result)
-
-    def test_read_empty_csv(self) -> None:
-        """Тест чтения пустого CSV файла"""
-        csv_content = "date,amount,description\n"
-
-        with patch("builtins.open", mock_open(read_data=csv_content)):
-            result = read_transactions_csv("empty.csv")
-
-        assert result == []
-        assert isinstance(result, list)
-
-    def test_read_csv_only_headers(self) -> None:
-        """Тест чтения CSV только с заголовками без данных"""
-        csv_content = "date,amount,description,category\n"
-
-        with patch("builtins.open", mock_open(read_data=csv_content)):
-            result = read_transactions_csv("headers_only.csv")
-
-        assert result == []
-        assert isinstance(result, list)
-
-    def test_file_not_found_csv(self) -> None:
+    def test_file_not_found_csv(self):
         """Тест обработки отсутствующего CSV файла"""
-        with patch("builtins.open", side_effect=FileNotFoundError("File not found")):
-            result = read_transactions_csv("nonexistent.csv")
+        with pytest.raises(FileReadError, match="Файл .* не найден"):
+            read_transactions_csv("nonexistent.csv")
 
-        assert result == []
-        assert isinstance(result, list)
+    def test_csv_with_missing_required_field(self, tmp_path):
+        """Тест CSV с отсутствующим обязательным полем"""
+        # Создаем CSV без поля 'id'
+        bad_csv_content = """state;date;amount;currency_name;currency_code;from;to;description
+EXECUTED;2023-09-05T11:30:32Z;16210.0;Sol;PEN;Счет 123;Счет 456;Перевод
+"""
+        csv_file = tmp_path / "bad.csv"
+        csv_file.write_text(bad_csv_content, encoding='utf-8')
 
-    def test_csv_reading_exception(self) -> None:
+        with pytest.raises(FileReadError, match="Отсутствует обязательное поле"):
+            read_transactions_csv(str(csv_file))
+
+    def test_csv_reading_exception(self):
         """Тест обработки исключений при чтении CSV"""
-        with patch("builtins.open", side_effect=Exception("Read error")):
-            result = read_transactions_csv("corrupted.csv")
-
-        assert result == []
-        assert isinstance(result, list)
+        with patch('builtins.open', side_effect=Exception("Read error")):
+            with pytest.raises(FileReadError, match="Ошибка при чтении CSV файла"):
+                read_transactions_csv("test.csv")
 
 
 class TestReadTransactionsExcel:
     """Тесты для функции read_transactions_excel"""
 
-    def test_read_valid_excel(self) -> None:
+    def test_read_valid_excel(self, temp_excel_file):
         """Тест чтения корректного Excel файла"""
-        mock_data = {
-            "date": ["2023-01-01", "2023-01-02", "2023-01-03"],
-            "amount": [1000.00, -500.50, -45.00],
-            "description": ["Salary", "Groceries", "Transport"],
-            "category": ["Income", "Food", "Transportation"],
-        }
-        mock_df = pd.DataFrame(mock_data)
+        result = read_transactions_excel(str(temp_excel_file))
 
-        expected = [
-            {"date": "2023-01-01", "amount": 1000.00, "description": "Salary", "category": "Income"},
-            {"date": "2023-01-02", "amount": -500.50, "description": "Groceries", "category": "Food"},
-            {"date": "2023-01-03", "amount": -45.00, "description": "Transport", "category": "Transportation"},
-        ]
+        assert len(result) == 1
+        assert result[0]['id'] == '650703'
+        assert result[0]['state'] == 'EXECUTED'
+        assert result[0]['operationAmount']['amount'] == '16210'
+        assert result[0]['operationAmount']['currency']['code'] == 'PEN'
 
-        with patch("pandas.read_excel", return_value=mock_df):
-            result = read_transactions_excel("test.xlsx")
-
-        assert result == expected
-        assert len(result) == 3
-        assert isinstance(result, list)
-        assert all(isinstance(item, dict) for item in result)
-
-    def test_read_empty_excel(self) -> None:
-        """Тест чтения пустого Excel файла"""
-        mock_df = pd.DataFrame()
-
-        with patch("pandas.read_excel", return_value=mock_df):
-            result = read_transactions_excel("empty.xlsx")
-
-        assert result == []
-        assert isinstance(result, list)
-
-    def test_file_not_found_excel(self) -> None:
+    def test_file_not_found_excel(self):
         """Тест обработки отсутствующего Excel файла"""
-        with patch("pandas.read_excel", side_effect=FileNotFoundError("File not found")):
-            result = read_transactions_excel("nonexistent.xlsx")
+        with pytest.raises(FileReadError, match="Файл .* не найден"):
+            read_transactions_excel("nonexistent.xlsx")
 
-        assert result == []
-        assert isinstance(result, list)
+    def test_excel_with_missing_required_field(self, tmp_path):
+        """Тест Excel с отсутствующим обязательным полем"""
+        # Создаем DataFrame без поля 'id'
+        bad_data = [{
+            'state': 'EXECUTED',
+            'date': '2023-09-05T11:30:32Z',
+            'amount': 16210.0,
+            'currency_name': 'Sol',
+            'currency_code': 'PEN',
+            'from': 'Счет 123',
+            'to': 'Счет 456',
+            'description': 'Перевод организации'
+        }]
 
-    def test_excel_reading_exception(self) -> None:
+        excel_file = tmp_path / "bad.xlsx"
+        df = pd.DataFrame(bad_data)
+        df.to_excel(excel_file, index=False)
+
+        with pytest.raises(FileReadError, match="Отсутствует обязательное поле"):
+            read_transactions_excel(str(excel_file))
+
+    def test_excel_reading_exception(self):
         """Тест обработки исключений при чтении Excel"""
-        with patch("pandas.read_excel", side_effect=Exception("Excel read error")):
-            result = read_transactions_excel("corrupted.xlsx")
-
-        assert result == []
-        assert isinstance(result, list)
+        with patch('pandas.read_excel', side_effect=Exception("Excel read error")):
+            with pytest.raises(FileReadError, match="Ошибка при чтении Excel файла"):
+                read_transactions_excel("test.xlsx")
 
 
 class TestIntegration:
-    """Интеграционные тесты для проверки взаимодействия"""
+    """Интеграционные тесты"""
 
-    def test_both_functions_return_lists(self) -> None:
-        """Тест, что обе функции всегда возвращают списки"""
-        # Даже при ошибках функции должны возвращать списки
-        with patch("builtins.open", side_effect=FileNotFoundError()):
-            csv_result = read_transactions_csv("nonexistent.csv")
-
-        with patch("pandas.read_excel", side_effect=FileNotFoundError()):
-            excel_result = read_transactions_excel("nonexistent.xlsx")
+    def test_both_functions_return_lists(self, temp_csv_file, temp_excel_file):
+        """Тест, что обе функции возвращают списки"""
+        csv_result = read_transactions_csv(str(temp_csv_file))
+        excel_result = read_transactions_excel(str(temp_excel_file))
 
         assert isinstance(csv_result, list)
         assert isinstance(excel_result, list)
 
-    def test_transactions_structure(self) -> None:
+    def test_transactions_structure(self, temp_csv_file):
         """Тест структуры возвращаемых транзакций"""
-        csv_content = """date,amount,description
-2023-01-01,1000.00,Salary"""
+        result = read_transactions_csv(str(temp_csv_file))
+        transaction = result[0]
 
-        with patch("builtins.open", mock_open(read_data=csv_content)):
-            transactions = read_transactions_csv("test.csv")
+        # Проверяем обязательные поля
+        assert 'id' in transaction
+        assert 'state' in transaction
+        assert 'date' in transaction
+        assert 'operationAmount' in transaction
+        assert 'description' in transaction
 
-        # Проверяем структуру первой транзакции
-        if transactions:
-            first_transaction = transactions[0]
-            assert isinstance(first_transaction, dict)
-            assert "date" in first_transaction
-            assert "amount" in first_transaction
-            assert "description" in first_transaction
-
-    @pytest.mark.parametrize("file_path", [None, "custom_path.csv"])
-    def test_default_file_path(self, file_path: str) -> None:
-        """Тест работы с default file path"""
-        csv_content = "date,amount,description\n2023-01-01,1000,Salary"
-
-        with patch("builtins.open", mock_open(read_data=csv_content)):
-            with patch("src.read_csv_excel.TRANSACTIONS_CSV_FILE_PATH", "default.csv"):
-                if file_path is None:
-                    result = read_transactions_csv()
-                else:
-                    result = read_transactions_csv(file_path)
-
-        assert isinstance(result, list)
+        # Проверяем вложенную структуру
+        assert 'amount' in transaction['operationAmount']
+        assert 'currency' in transaction['operationAmount']
+        assert 'code' in transaction['operationAmount']['currency']
 
 
 # Тесты для проверки конкретных сценариев из финансового приложения
 class TestFinancialScenarios:
     """Тесты для финансовых сценариев"""
 
-    def test_bank_statement_format(self) -> None:
+    def test_bank_statement_format(self, temp_csv_file):
         """Тест формата банковской выписки"""
-        bank_statement_content = """Дата операции,Сумма,Категория,Описание
-2024-01-15,1500.00,Доход,Зарплата
-2024-01-16,-250.50,Продукты,Супермаркет
-2024-01-17,-45.00,Транспорт,Метро"""
+        transactions = read_transactions_csv(str(temp_csv_file))
 
-        expected = [
-            {"Дата операции": "2024-01-15", "Сумма": "1500.00", "Категория": "Доход", "Описание": "Зарплата"},
-            {"Дата операции": "2024-01-16", "Сумма": "-250.50", "Категория": "Продукты", "Описание": "Супермаркет"},
-            {"Дата операции": "2024-01-17", "Сумма": "-45.00", "Категория": "Транспорт", "Описание": "Метро"},
-        ]
+        for transaction in transactions:
+            # Проверяем что все суммы положительные
+            amount = float(transaction['operationAmount']['amount'])
+            assert amount > 0
 
-        with patch("builtins.open", mock_open(read_data=bank_statement_content)):
-            result = read_transactions_csv("bank_statement.csv")
+            # Проверяем валидность статусов
+            assert transaction['state'] in ['EXECUTED', 'CANCELED', 'PENDING']
 
-        assert result == expected
+            # Проверяем что описания не пустые
+            assert transaction['description'].strip() != ""

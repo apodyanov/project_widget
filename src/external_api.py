@@ -8,6 +8,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+class CurrencyConversionError(Exception):
+    """Пользовательское исключение для ошибок конвертации валют"""
+
+    pass
+
+
+class APIError(Exception):
+    """Пользовательское исключение для ошибок API"""
+
+    pass
+
+
 def convert_currency_via_api(amount: float, from_currency: str, to_currency: str = "RUB") -> Any:
     """
     Конвертирует сумму из одной валюты в другую используя внешнее API endpoint /convert.
@@ -38,19 +50,19 @@ def convert_currency_via_api(amount: float, from_currency: str, to_currency: str
 
         if not data.get("success", False):
             error_info = data.get("error", {}).get("info", "Unknown error")
-            raise Exception(f"API error: {error_info}")
+            raise APIError(f"API error: {error_info}")
 
         # Возвращаем готовую конвертированную сумму из ответа
         result = data.get("result")
         if result is None:
-            raise Exception("Result not found in API response")
+            raise APIError("Result not found in API response")
 
         return result
 
     except requests.exceptions.RequestException as e:
-        raise Exception(f"Request failed: {str(e)}")
+        raise CurrencyConversionError(f"Request failed: {str(e)}")
     except KeyError as e:
-        raise Exception(f"Invalid response format: {str(e)}")
+        raise CurrencyConversionError(f"Invalid response format: {str(e)}")
 
 
 def get_amount_in_rub(transaction: Dict[str, Any]) -> Any:
@@ -64,30 +76,30 @@ def get_amount_in_rub(transaction: Dict[str, Any]) -> Any:
         float: Сумма транзакции в рублях
     """
     try:
-        # Извлекаем данные из вложенной структуры
-        operation_amount = transaction.get("operationAmount", {})
-        amount_str = operation_amount.get("amount", "0")
-        currency_info = operation_amount.get("currency", {})
-        currency_code = currency_info.get("code", "RUB")
+        # Извлекаем информацию о сумме и валюте
+        operation_amount = transaction.get('operationAmount', {})
 
-        # Преобразуем сумму в float
-        amount = float(amount_str)
+        if not operation_amount:
+            return 0.0
 
-        # Если валюта уже рубли, возвращаем как есть
-        if currency_code == "RUB":
+        amount_str = operation_amount.get('amount', '0')
+        currency_info = operation_amount.get('currency', {})
+        currency_code = currency_info.get('code', 'RUB')
+
+        # Пытаемся преобразовать сумму в число
+        try:
+            amount = float(amount_str)
+        except (ValueError, TypeError):
+            return 0.0
+
+        # Если уже рубли, возвращаем как есть
+        if currency_code == 'RUB':
             return amount
 
-        # Если валюта USD или EUR, конвертируем через API endpoint /convert
-        if currency_code in ["USD", "EUR"]:
-            converted_amount = convert_currency_via_api(amount, currency_code, "RUB")
-            return converted_amount
+        # Конвертируем через API
+        converted_amount = convert_currency_via_api(amount, currency_code, "RUB")
+        return converted_amount
 
-        # Для других валют возвращаем как есть (не конвертируем)
-        return amount
-
-    except (ValueError, TypeError):
-        # Если не удалось преобразовать сумму в число
-        return 0.0
     except Exception:
-        # Если произошла ошибка при конвертации через API
+        # В случае любой ошибки возвращаем 0
         return 0.0

@@ -71,49 +71,77 @@ class TestConvertCurrencyViaApi:
 class TestGetAmountInRub:
     """Тесты для функции get_amount_in_rub"""
 
-    def test_rub_transaction(self):
-        """Тест для транзакции в рублях"""
-        transaction = {"operationAmount": {"amount": "1000.50", "currency": {"name": "руб.", "code": "RUB"}}}
-
-        result = get_amount_in_rub(transaction)
-        assert result == 1000.50
-        assert isinstance(result, float)
-
-    @patch("src.external_api.convert_currency_via_api")
-    def test_usd_transaction(self, mock_convert):
-        """Тест для транзакции в USD"""
-        mock_convert.return_value = 9550.0
-
-        transaction = {"operationAmount": {"amount": "100.0", "currency": {"name": "USD", "code": "USD"}}}
-
-        result = get_amount_in_rub(transaction)
-        assert result == 9550.0
-        mock_convert.assert_called_once_with(100.0, "USD", "RUB")
-
-    @patch("src.external_api.convert_currency_via_api")
-    def test_eur_transaction(self, mock_convert):
-        """Тест для транзакции в EUR"""
-        mock_convert.return_value = 10500.0
-
-        transaction = {"operationAmount": {"amount": "100.0", "currency": {"name": "EUR", "code": "EUR"}}}
-
-        result = get_amount_in_rub(transaction)
-        assert result == 10500.0
-        mock_convert.assert_called_once_with(100.0, "EUR", "RUB")
-
-    def test_unknown_currency(self):
-        """Тест для транзакции с неизвестной валютой"""
-        transaction = {"operationAmount": {"amount": "100.0", "currency": {"name": "GBP", "code": "GBP"}}}
-
-        result = get_amount_in_rub(transaction)
-        assert result == 100.0
-
     @patch("src.external_api.convert_currency_via_api")
     def test_api_error_returns_zero(self, mock_convert):
         """Тест, что при ошибке API возвращается 0"""
         mock_convert.side_effect = Exception("API error")
 
-        transaction = {"operationAmount": {"amount": "100.0", "currency": {"name": "USD", "code": "USD"}}}
+        transaction = {
+            "operationAmount": {
+                "amount": "100.0",
+                "currency": {
+                    "name": "USD",
+                    "code": "USD"
+                }
+            }
+        }
 
         result = get_amount_in_rub(transaction)
+
+        # Проверяем что возвращается 0 при ошибке API
+        assert result == 0.0
+        # Убеждаемся что API было вызвано
+        mock_convert.assert_called_once_with(100.0, "USD", "RUB")
+
+    @patch("src.external_api.convert_currency_via_api")
+    def test_rub_transaction_returns_same_amount(self, mock_convert):
+        """Тест, что для рублевых транзакций возвращается исходная сумма"""
+        transaction = {
+            "operationAmount": {
+                "amount": "500.0",
+                "currency": {
+                    "name": "руб.",
+                    "code": "RUB"
+                }
+            }
+        }
+
+        result = get_amount_in_rub(transaction)
+
+        # Для RUB конвертация не должна вызываться
+        assert result == 500.0
+        mock_convert.assert_not_called()
+
+    @patch("src.external_api.convert_currency_via_api")
+    def test_invalid_amount_returns_zero(self, mock_convert):
+        """Тест, что при невалидной сумме возвращается 0"""
+        transaction = {
+            "operationAmount": {
+                "amount": "invalid",
+                "currency": {
+                    "name": "USD",
+                    "code": "USD"
+                }
+            }
+        }
+
+        result = get_amount_in_rub(transaction)
+
+        assert result == 0.0
+        mock_convert.assert_not_called()
+
+    def test_missing_operation_amount_returns_zero(self):
+        """Тест, что при отсутствии operationAmount возвращается 0"""
+        transaction = {"id": 1, "state": "EXECUTED"}
+
+        result = get_amount_in_rub(transaction)
+
+        assert result == 0.0
+
+    def test_empty_operation_amount_returns_zero(self):
+        """Тест, что при пустом operationAmount возвращается 0"""
+        transaction = {"operationAmount": {}}
+
+        result = get_amount_in_rub(transaction)
+
         assert result == 0.0
